@@ -10,36 +10,20 @@ import numpy as np
 import glob
 from pathlib import Path
 from datetime import datetime as dt
-
-
-# In[2]:
-
-
-home = Path.home()
-today = dt.today()
-today = today.strftime("%Y%m%d")
-today = '20221101'
-
-
-# In[3]:
-
-
-target = Path (home, 'HP Inc','GPSTW SOP - 2021 日新','Project team','Single shortage')
-PNFVPath = Path(home, 'HP Inc','GPSTW SOP - 2021 日新', 'PN FV description mapping table_ALL.xlsx')
-ExternalReportFolder = Path(home, 'HP Inc','GPSTW SOP - 2021 日新','Project team','External test destination')
-ExternalReport = [f for f in glob.glob(str(Path(ExternalReportFolder, today + '*')))]
-ExternalReport
+from datetime import timedelta
 
 
 # In[4]:
 
 
-PNFVFile = pd.read_excel(PNFVPath)
-PNFVFile = PNFVFile [['PN', 'Descr']]
+home = Path.home()
+today = dt.today()
 
+dateRange = [today - timedelta(days = x) for x in range(100)]
+dateRange = [i.strftime("%Y%m%d") for i in dateRange]
 
-# In[5]:
-
+today = today.strftime("%Y%m%d")
+today = '20221108'
 
 ODMdict = {
     'FWH' : 'WHFXN',
@@ -52,39 +36,19 @@ ODMdict = {
 }
 
 
-# In[6]:
-
-
-fileList = [str(x) for x in target.glob("*xlsx")]
-
-
-# In[7]:
-
-
-errorList = []
-
-
-# In[8]:
-
-
-resultList = []
-
-
-# In[9]:
-
+# In[5]:
 
 
 def clean(fname: str, file : pd.DataFrame) -> pd.DataFrame:
 
-    #add report day
     currentYear = dt.now().year
-    #print(fname)
     currentday = fname.split('\\')[-1][-13:-5]
-    #currentday = str(currentYear) + currentday
-    #print(currentday)
-    #print(type(currentday))
-    file = file.assign(reportDate = currentday)
-    file['reportDate'] = file['reportDate'].apply(lambda x: dt.strptime(x, '%Y%m%d'))
+    file = file.assign(LastSGreportDate = currentday)
+    
+    file['LastSGreportDate'] = file['LastSGreportDate'].apply(lambda x: dt.strptime(x, '%Y%m%d'))
+    file['LastSGreportDate'] = pd.to_datetime(file['LastSGreportDate'])
+
+    file = file.assign(reportDate = today)
     file['reportDate'] = pd.to_datetime(file['reportDate'])
 
     #clean
@@ -106,17 +70,34 @@ def clean(fname: str, file : pd.DataFrame) -> pd.DataFrame:
 
     #replace ODM name
     file['ODM'] = file['ODM'].replace(ODMdict)
-    return file    
+    return file   
 
 
-# In[10]:
+# In[6]:
+
+
+target = Path (home, 'HP Inc','GPSTW SOP - 2021 日新','Project team','Single shortage')
+PNFVPath = Path(home, 'HP Inc','GPSTW SOP - 2021 日新', 'PN FV description mapping table_ALL.xlsx')
+
+
+
+PNFVFile = pd.read_excel(PNFVPath)
+PNFVFile = PNFVFile [['PN', 'Descr']]
+PNFVFile = PNFVFile.rename(columns = {'PN': 'HP PN'})
+
+
+# In[7]:
+
+
+fileList = [str(x) for x in target.glob("*xlsx")]
+errorList = []
+resultList = []
+
+
+# In[8]:
 
 
 for f in fileList:
-    # file = pd.read_excel(f)
-    # resultList.append(clean(f, file))
-
-
     try:
         file = pd.read_excel(f)
         resultList.append(clean(f, file))
@@ -126,66 +107,36 @@ for f in fileList:
         print(f + " process failed!")
 
 
-# In[11]:
+# In[9]:
 
 
 result = pd.concat(resultList)
 
 
-# In[12]:
+# In[10]:
 
 
 dateList = result['reportDate'].tolist()
-
-
-# In[13]:
-
-
 max(dateList)
 
 
-# In[14]:
+# In[ ]:
 
 
-LatestSGMaterial = result[result['reportDate'] == max(dateList)]
-
-
-# In[15]:
-
-
-LatestSGMaterial
-
-
-# result['Prev_Single Shortage QTY'].unique()
-
-# In[16]:
-
-
-LatestSGMaterial = LatestSGMaterial.merge(PNFVFile.rename(columns = {'PN': 'HP PN'}), on = 'HP PN', how = 'left')
-LatestSGMaterial
-
-
-# In[17]:
-
-
+LatestSGMaterial = result
+LatestSGMaterial = LatestSGMaterial.merge(PNFVFile, on = 'HP PN', how = 'left')
 LatestSGMaterial['Key'] = LatestSGMaterial['ODM'] + LatestSGMaterial['Descr']
 KeyList = LatestSGMaterial['Key'].tolist()
 
 
-# In[18]:
+# ### concat current day external report
+
+# In[ ]:
 
 
-ExternalReport
-
-
-# In[19]:
-
-
+ExternalReportFolder = Path(home, 'HP Inc','GPSTW SOP - 2021 日新','Project team','External test destination')
+ExternalReport = [f for f in glob.glob(str(Path(ExternalReportFolder, today + '*')))]
 externalResultDFList = []
-
-
-# In[20]:
-
 
 for _ in ExternalReport:
     try: 
@@ -209,94 +160,39 @@ for _ in ExternalReport:
         print(e)
         print(_)
 
-
-# In[21]:
-
-
 externalResultDF = pd.concat(externalResultDFList)
 
 
-# In[22]:
+# ### lookup PNFV and merge external reportm
 
-
-#externalResultDF['test'] = externalResultDF['GPS Remark'].apply(lambda x : str(x).split("\n"))
-
-
-# In[23]:
-
-
-#externalResultDF['test'] = externalResultDF['test'].apply(lambda x: i.replace() for i in x)
-
-
-# In[24]:
-
-
-PNFVFile
-
-
-# In[25]:
-
-
-PNFVFile = PNFVFile.rename(columns = {'PN': 'HP PN'})
-
-
-# In[26]:
+# In[ ]:
 
 
 result = result.merge(PNFVFile.rename(columns = {'PN': 'HP PN'}), on = 'HP PN', how = 'left')
-
-
-# In[27]:
-
-
-result.head()
-
-
-# In[28]:
-
-
 result = result.merge(externalResultDF.rename(columns = {'FV/Des' : 'Descr'}), on = ['ODM', 'Descr'], how = 'left')
+result = result.drop_duplicates()
 
 
-# In[29]:
+# ### output
+
+# In[ ]:
 
 
-result
+result.to_excel(Path(target, 'total singal shortage_' + today +'.xls'), index = False)
 
 
-# In[30]:
-
-
-result.to_excel(Path(target, 'total singal shortage_' + today +'.xlsx'), index = False)
-
-
-# In[31]:
+# In[ ]:
 
 
 errorList
 
 
-# In[32]:
+# In[ ]:
 
 
 import psutil
-
-
-# In[33]:
-
-
 psutil.cpu_percent()
-
-
-# In[34]:
-
-
 psutil.virtual_memory()
-
-
-# In[35]:
-
-
 print(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2)
 
 
