@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 import datetime
@@ -11,31 +11,26 @@ from pathlib import Path
 import re
 
 
-# In[ ]:
+# In[2]:
 
 
+#path and date variable
 home = os.path.expanduser('~')
-
-
-# In[ ]:
-
-
 path = os.path.join(home, 'HP Inc','GPSTW SOP - 2021 日新','Project team','Upload folder ( for buyer update )')
-path
 
 
-# In[ ]:
+# In[3]:
 
 
 today = datetime.date.today()
 outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
 outlook.Session.Accounts.Item(2)
-#.GetNamespace("MAPI")
 
 
-# In[ ]:
+# In[4]:
 
 
+# get into the correct email inbox
 item = outlook.Folders.Item(2)
 if item.Name != 'gpscommunication@hp.com':
     item = outlook.Folders.Item(1)
@@ -43,29 +38,24 @@ else:
     pass
 
 
-# In[ ]:
+# In[5]:
 
 
+#get into inbox and get emails
 inbox = item.Folders['inbox']
 project_folder = inbox.Folders['Newcomen']
 target_folder = project_folder.Folders['Processed_Data']
 messages = target_folder.Items
 
 
-# In[ ]:
+# In[6]:
 
 
+# sort by message sent time
 messages.Sort("[Senton]")
 
 
-# In[ ]:
-
-
-for i in messages:
-    print(i.Senton)
-
-
-# In[ ]:
+# In[7]:
 
 
 def saveattachemnts(regex = '.*<(\d{4}-\d{2}-\d{2}) processed data>\[\'\d{8}_[&a-zA-Z ]+_[&a-zA-Z ]+_.*'):
@@ -126,20 +116,12 @@ def saveattachemnts(regex = '.*<(\d{4}-\d{2}-\d{2}) processed data>\[\'\d{8}_[&a
                     except Exception as e:
                         print(attachment)
                         print(e)
-                #break
         else:
             pass
-            #print(message)
 
 
-# In[ ]:
+# In[8]:
 
 
 saveattachemnts()
-
-
-# In[ ]:
-
-
-
 
