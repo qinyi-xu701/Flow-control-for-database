@@ -4,19 +4,20 @@
 # In[ ]:
 
 
-import datetime
-import glob
-import math
-import os
-import re
-import time
-from datetime import date
-from pathlib import Path
-
-import numpy as np
-import pandas as pd
 import pyodbc
-from pandas.api.types import is_numeric_dtype, is_string_dtype
+import pandas as pd
+from pathlib import Path
+import glob
+import datetime
+import re
+import os
+import numpy as np
+from pandas.api.types import is_string_dtype
+from pandas.api.types import is_numeric_dtype
+from datetime import date
+import math
+import time
+
 
 # In[ ]:
 
@@ -53,14 +54,14 @@ start_time = time.time()
 conn = pyodbc.connect('Driver={SQL Server Native Client 11.0}; Server=g7w11206g.inc.hpicorp.net; Database=CSI; Trusted_Connection=Yes;')
 cursor = conn.cursor()
 
-cursor.execute(f"SELECT COUNT(*) FROM GPS.GPS_tbl_ops_PN_FV")
+cursor.execute(f"SELECT COUNT(*) FROM OPS.GPS_tbl_ops_PN_FV")
 conn.commit()
 
-cursor.execute(f"DELETE FROM GPS.GPS_tbl_ops_PN_FV")
+cursor.execute(f"DELETE FROM OPS.GPS_tbl_ops_PN_FV")
 conn.commit()
 print("%s seconds ---" % (time.time() - start_time))
 
-cursor.execute(f"SELECT COUNT(*) FROM GPS.GPS_tbl_ops_PN_FV")
+cursor.execute(f"SELECT COUNT(*) FROM OPS.GPS_tbl_ops_PN_FV")
 conn.commit()
 
 for index, row in PNFV.iterrows():
@@ -71,7 +72,7 @@ for index, row in PNFV.iterrows():
     Descr = str(row['Descr'])
     alternative = str(row['alternative part flag'])
 
-    cursor.execute(f"INSERT INTO CSI.GPS.GPS_tbl_ops_PN_FV ( Commodity, Supplier, PN, Descr, [alternative part flag] )\
+    cursor.execute(f"INSERT INTO CSI.OPS.GPS_tbl_ops_PN_FV ( Commodity, Supplier, PN, Descr, [alternative part flag] )\
                     VALUES('{Commodity}','{Supplier}','{PN}','{Descr}','{alternative}')")
     
     print("%s seconds ---" % (time.time() - start_time))

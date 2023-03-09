@@ -63,7 +63,7 @@ for index, row in FD.iterrows():
     f_FDQty = row['FDQty']
     f_BuyerName = row['BuyerName']
     
-    cursor.execute(f"INSERT INTO CSI.GPS.GPS_tbl_ops_fd ( ODM,Item,Commodity,FV,Platform,Supplier,[HP PN],FDdate,FDQty,Reportdate,BuyerName )\
+    cursor.execute(f"INSERT INTO CSI.OPS.GPS_tbl_ops_fd ( ODM,Item,Commodity,FV,Platform,Supplier,[HP PN],FDdate,FDQty,Reportdate,BuyerName )\
                     VALUES('{f_ODM}','{f_Item}','{f_Commodity}','{f_FV}','{f_Platform}','{f_Supplier}','{f_PN}','{f_FDdate}','{f_FDQty}','{f_ReportDate}','{f_BuyerName}')".replace("'NaT'", "NULL"))
 
 conn.commit()
@@ -89,7 +89,7 @@ for index, row in shortage.iterrows():
     s_BuyerName = row['BuyerName']
     s_PN = row['HP_PN']
 
-    cursor.execute(f"INSERT INTO CSI.GPS.GPS_tbl_ops_shortage_ext ( ODM,Item,Commodity,FV,Platform,P1,[Net P2],[Net P3],[Total Shortage Qty],[BT shortage],[Working on upside],ReportDate,[last FD date],HP_PN,BuyerName )\
+    cursor.execute(f"INSERT INTO CSI.OPS.GPS_tbl_ops_shortage_ext ( ODM,Item,Commodity,FV,Platform,P1,[Net P2],[Net P3],[Total Shortage Qty],[BT shortage],[Working on upside],ReportDate,[last FD date],HP_PN,BuyerName )\
                     VALUES('{s_ODM}','{s_Item}','{s_Commodity}','{s_FV}','{s_Platform}','{s_P1}','{s_P2}','{s_P3}','{s_Total}','{s_BT}','{s_working}','{s_ReportDate}','{s_lastFDdate}','{s_PN}','{s_BuyerName}')".replace("'NaT'", "NULL"))
 
 conn.commit()
@@ -122,7 +122,7 @@ for index, row in PNbasedDetail.iterrows():
     p_ReportDate = row['ReportDate']
     p_BuyerName = row['BuyerName']
 
-    cursor.execute(f"INSERT INTO CSI.GPS.GPS_tbl_ops_PNbasedDetail ( ODM,Item,Commodity,[HP PN],[GPS Remark],[852 stock],[852 stock change],[Over pull qty],\
+    cursor.execute(f"INSERT INTO CSI.OPS.GPS_tbl_ops_PNbasedDetail ( ODM,Item,Commodity,[HP PN],[GPS Remark],[852 stock],[852 stock change],[Over pull qty],\
                     [ODM use column1],[ODM use column2],[ODM use column3],[ODM use column4],[ODM use column5],ReportDate,BuyerName )\
                     VALUES('{p_ODM}','{p_Item}','{p_Commodity}','{p_PN}','{p_Remark}','{p_stock}','{p_change}','{p_over}','{p_ODM1}','{p_ODM2}','{p_ODM3}','{p_ODM4}','{p_ODM5}','{p_ReportDate}','{p_BuyerName}')".replace("'NaT'", "NULL"))
 

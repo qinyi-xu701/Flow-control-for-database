@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 import pandas as pd
@@ -11,35 +11,44 @@ import glob
 from pathlib import Path
 from datetime import datetime as dt
 from datetime import timedelta
+import pyodbc
+import shutil
 
 
-# In[4]:
+# In[ ]:
 
 
 home = Path.home()
-today = dt.today()
+today = dt.today().date()
 
-dateRange = [today - timedelta(days = x) for x in range(100)]
-dateRange = [i.strftime("%Y%m%d") for i in dateRange]
+dateRange = [today - timedelta(days = x) for x in range(365)]
+#dateRange = [i.strftime("%Y%m%d") for i in dateRange]
 
 today = today.strftime("%Y%m%d")
-today = '20221108'
+
 
 ODMdict = {
     'FWH' : 'WHFXN',
     'Compal' : 'KSCEI',
     'CEI' : 'KSCEI',
     'Wistron' : 'CQWIS',
+    'wistron' : 'CQWIS',
     'Inventec' : 'CQIEC',
     'Quanta' : 'CQQCI',
     'Pegatron' : 'CQPCQ'
 }
 
 
-# In[5]:
+# In[ ]:
 
 
-def clean(fname: str, file : pd.DataFrame) -> pd.DataFrame:
+dateRange.reverse()
+
+
+# In[ ]:
+
+
+def clean(fname: str, file : pd.DataFrame, externalReportDate : str) -> pd.DataFrame:
 
     currentYear = dt.now().year
     currentday = fname.split('\\')[-1][-13:-5]
@@ -48,7 +57,9 @@ def clean(fname: str, file : pd.DataFrame) -> pd.DataFrame:
     file['LastSGreportDate'] = file['LastSGreportDate'].apply(lambda x: dt.strptime(x, '%Y%m%d'))
     file['LastSGreportDate'] = pd.to_datetime(file['LastSGreportDate'])
 
-    file = file.assign(reportDate = today)
+    file = file.assign(reportDate = externalReportDate)
+
+    file['reportDate'] = file['reportDate'].apply(lambda x: dt.strptime(x, '%Y%m%d'))
     file['reportDate'] = pd.to_datetime(file['reportDate'])
 
     #clean
@@ -73,60 +84,71 @@ def clean(fname: str, file : pd.DataFrame) -> pd.DataFrame:
     return file   
 
 
-# In[6]:
+# In[ ]:
 
 
 target = Path (home, 'HP Inc','GPSTW SOP - 2021 日新','Project team','Single shortage')
 PNFVPath = Path(home, 'HP Inc','GPSTW SOP - 2021 日新', 'PN FV description mapping table_ALL.xlsx')
-
-
+ExternalReportFolder = Path(home, 'HP Inc','GPSTW SOP - 2021 日新','Project team','External test destination', 'today')
 
 PNFVFile = pd.read_excel(PNFVPath)
 PNFVFile = PNFVFile [['PN', 'Descr']]
 PNFVFile = PNFVFile.rename(columns = {'PN': 'HP PN'})
 
 
-# In[7]:
+# In[ ]:
 
 
-fileList = [str(x) for x in target.glob("*xlsx")]
+fileList = [str(x) for x in Path(target,'Archive').glob("*xlsx")]
+fileListDateNum = [dt.strptime(x[-13:-5], "%Y%m%d").date() for x in fileList]
+
 errorList = []
 resultList = []
-
-
-# In[8]:
-
-
-for f in fileList:
-    try:
-        file = pd.read_excel(f)
-        resultList.append(clean(f, file))
-        print(f + " process done!")
-    except Exception as e:
-        errorList.append([f, e])
-        print(f + " process failed!")
-
-
-# In[9]:
-
-
-result = pd.concat(resultList)
-
-
-# In[10]:
-
-
-dateList = result['reportDate'].tolist()
-max(dateList)
 
 
 # In[ ]:
 
 
-LatestSGMaterial = result
-LatestSGMaterial = LatestSGMaterial.merge(PNFVFile, on = 'HP PN', how = 'left')
-LatestSGMaterial['Key'] = LatestSGMaterial['ODM'] + LatestSGMaterial['Descr']
-KeyList = LatestSGMaterial['Key'].tolist()
+lookupSGdateList = []
+i = 0
+for _ in dateRange:
+    if i == len(fileListDateNum)-1:
+        lookupSGdateList.append(fileListDateNum[i])
+        continue
+    
+    if _ < fileListDateNum[i+1]:
+        lookupSGdateList.append(fileListDateNum[i])
+    else:
+        i = i + 1
+        lookupSGdateList.append(fileListDateNum[i])
+
+
+# In[ ]:
+
+
+dateRange = [i.strftime("%Y%m%d") for i in dateRange]
+lookupSGdateList = [i.strftime("%Y%m%d") for i in lookupSGdateList]
+
+
+# In[ ]:
+
+
+zip(dateRange, lookupSGdateList)
+
+
+# dateList = result['reportDate'].tolist()
+# max(dateList)
+
+# In[ ]:
+
+
+def addKey(res: pd.DataFrame) -> tuple[list, pd.DataFrame]:
+    LatestSGMaterial = res
+    LatestSGMaterial = LatestSGMaterial.merge(PNFVFile, on = 'HP PN', how = 'left')
+    LatestSGMaterial['Key'] = LatestSGMaterial['ODM'] + LatestSGMaterial['Descr']
+    KeyList = LatestSGMaterial['Key'].tolist()
+    print("addKey done!")
+    return KeyList, res
 
 
 # ### concat current day external report
@@ -134,51 +156,227 @@ KeyList = LatestSGMaterial['Key'].tolist()
 # In[ ]:
 
 
-ExternalReportFolder = Path(home, 'HP Inc','GPSTW SOP - 2021 日新','Project team','External test destination')
-ExternalReport = [f for f in glob.glob(str(Path(ExternalReportFolder, today + '*')))]
-externalResultDFList = []
+def concatExternal(extReportPathList: list, KeyList: list) -> pd.DataFrame:
+    externalResultDFList = []
+    if not extReportPathList:
+        return 
 
-for _ in ExternalReport:
-    try: 
-        temp = pd.read_excel(_)
-        temp['ODM'] = temp['ODM'].ffill()
-        temp['ODM'] = temp['ODM'].replace(ODMdict)
-        temp['FV/Des'] = temp['FV/Des'].ffill()
-        #temp['ETA'] = temp['ETA'].ffill()
-        temp['key'] = temp['ODM'] + temp['FV/Des']
-        temp = temp[temp.key.isin(KeyList)]
-        temp = temp[['ODM', 'FV/Des', 'HP_PN', 'ETA', 'GPS Remark']]
-        temp = temp.groupby(['ODM', 'FV/Des']).agg({'ETA' : lambda x: '\n'.join(set(x.dropna())),
-                                                    'GPS Remark': lambda x: '\n'.join(set(x.dropna()))})
-        temp = temp.reset_index()
-        if len(temp) > 0:
-            print(len(temp))
-            externalResultDFList.append(temp)
-        else:
-            pass
-    except Exception as e:
-        print(e)
-        print(_)
-
-externalResultDF = pd.concat(externalResultDFList)
+    for _ in extReportPathList:
+        try: 
+            temp = pd.read_excel(_)
+            temp['ODM'] = temp['ODM'].ffill()
+            temp['ODM'] = temp['ODM'].replace(ODMdict)
+            temp['FV/Des'] = temp['FV/Des'].ffill()
+            #temp['ETA'] = temp['ETA'].ffill()
+            temp['key'] = temp['ODM'] + temp['FV/Des']
+            temp = temp[temp.key.isin(KeyList)]
+            
+            try:
+                temp = temp[['ODM', 'FV/Des', 'HP_PN', 'ETA', 'GPS Remark']]
+            except:
+                temp = temp[['ODM', 'FV/Des', 'HP PN', 'ETA', 'GPS Remark']]
+                temp = temp.rename(columns = {'HP PN' : 'HP_PN'})
+                print("Rocky wrong format!")
+                
+            temp = temp.groupby(['ODM', 'FV/Des']).agg({'ETA' : lambda x: '\n'.join(set(x.dropna())),
+                                                        'GPS Remark': lambda x: '\n'.join(set(x.dropna()))})
+            temp = temp.reset_index()
+            if len(temp) > 0:
+                print(len(temp))
+                externalResultDFList.append(temp)
+            else:
+                pass
+        except Exception as e:
+            print(e)
+            print(_)
+    try:
+        externalResultDF = pd.concat(externalResultDFList)
+    except ValueError:
+        print("No single shortage match!")
+        return pd.DataFrame(columns = ['ODM', 'FV/Des', 'HP_PN', 'ETA', 'GPS Remark'])
+    print('External process done!')
+    return externalResultDF
 
 
 # ### lookup PNFV and merge external reportm
-
-# In[ ]:
-
-
-result = result.merge(PNFVFile.rename(columns = {'PN': 'HP PN'}), on = 'HP PN', how = 'left')
-result = result.merge(externalResultDF.rename(columns = {'FV/Des' : 'Descr'}), on = ['ODM', 'Descr'], how = 'left')
-result = result.drop_duplicates()
-
-
 # ### output
 
 # In[ ]:
 
 
-result.to_excel(Path(target, 'total singal shortage_' + today +'.xls'), index = False)
+def mergeNoutput(SGres: pd.DataFrame, extRes: pd.DataFrame, dateStr: str) -> None:
+    SGres = SGres.merge(PNFVFile.rename(columns = {'PN': 'HP PN'}), on = 'HP PN', how = 'left')
+    SGres = SGres.merge(extRes.rename(columns = {'FV/Des' : 'Descr'}), on = ['ODM', 'Descr'], how = 'left')
+    SGres = SGres.drop_duplicates()
+    SGres.to_excel(Path(target, 'test','total singal shortage_' + dateStr +'.xls'), index = False, engine = 'xlwt')
+    print("Output done!")
+    return SGres
+
+
+# In[ ]:
+
+
+dateRange.reverse()
+
+
+# In[ ]:
+
+
+lookupSGdateList.reverse()
+
+
+# In[ ]:
+
+
+for i, j in zip(dateRange[0], lookupSGdateList[0]):
+    print(i, j)
+
+
+# In[ ]:
+
+
+[f for f in glob.glob(str(Path(target, 'Single shortage ' + '*')))][-1]
+
+
+# In[ ]:
+
+
+et = today
+# et = '20230306'
+# sg = '20230209'
+
+fname = [f for f in glob.glob(str(Path(target, 'Single shortage ' + '*')))][-1]
+ExternalReport = [f for f in glob.glob(str(Path(ExternalReportFolder, et + '*')))]
+if not ExternalReport:
+    print("No external on " + et)
+    #exit()
+
+try:
+    file = pd.read_excel(str(fname))
+    sg_res = clean(str(fname), file, et)
+    print(str(fname) + " process done!")
+except Exception as e:
+    errorList.append([str(fname), e])
+    print(str(fname) + " process failed!")
+    #exit()
+
+k, sg_res = addKey(sg_res)
+ext_res = concatExternal(ExternalReport, k)
+if ext_res is None:
+    print("No external on " + et)
+    #exit()
+
+sg_res = mergeNoutput(sg_res, ext_res, et)
+
+
+# In[ ]:
+
+
+conn = pyodbc.connect('Driver={SQL Server Native Client 11.0}; Server=g7w11206g.inc.hpicorp.net; Database=CSI; Trusted_Connection=Yes;')
+cursor = conn.cursor()
+
+
+# In[ ]:
+
+
+#sg_res = sg_res.rename(columns={'HP PN' : 'HP_PN'})
+
+
+# In[ ]:
+
+
+sg_res['ETA'] = sg_res['ETA'].apply(lambda x: x.replace("'","") if type(x) == str else x)
+
+
+# In[ ]:
+
+
+sg_res
+
+
+# In[ ]:
+
+
+for index, row in sg_res.iterrows():
+    sg_Commodity = row['Commodity']
+    sg_Qty = row['Single Shortage QTY']
+    sg_ODM = row['ODM']
+    sg_series = row['Series']
+    sg_PN_all = row['HP PN']
+    sg_pQty = row['Prev_Single Shortage QTY']
+    sg_pTyoe = row['Procurement type']
+    sg_reportDate = row['reportDate']
+    sg_ETA = row['ETA']
+    sg_gpsRemark = row['GPS Remark']
+    sg_lastSGreportDate = row['LastSGreportDate']
+    #sg_PN_single = row['HP PN']
+
+
+    cursor.execute(f"INSERT INTO CSI.OPS.GPS_tbl_ops_Single_shortage ( Commodity, [Single Shortage QTY], ODM, Series, [HP PN], [Prev_Single Shortage QTY], \
+                    [Procurement type], reportDate, ETA, [GPS Remark], LastSGreportDate)\
+                    VALUES('{sg_Commodity}','{sg_Qty}','{sg_ODM}','{sg_series}','{sg_PN_all}', '{sg_pQty}','{sg_pTyoe}','{sg_reportDate}',\
+                           '{sg_ETA}','{sg_gpsRemark}', '{sg_lastSGreportDate}')".replace("'NaT'", "NULL"))
+
+conn.commit()
+
+
+# In[ ]:
+
+
+conn.close()
+
+
+# In[ ]:
+
+
+ExternalReportFolder
+ExternalreportArchiveFolder = os.path.join(home, 'HP Inc','GPSTW SOP - 2021 日新','Project team','External test destination', 'Archive')
+
+for f in os.listdir(ExternalReportFolder):
+    shutil.move(os.path.join(ExternalReportFolder, f), os.path.join(ExternalreportArchiveFolder, f))
+
+
+# In[ ]:
+
+
+stop
+
+
+# In[ ]:
+
+
+for et, sg in zip(dateRange[0], lookupSGdateList[0]):
+    fname = Path (target, "Archive", str('Single shortage ' + sg + '.xlsx'))
+    ExternalReport = [f for f in glob.glob(str(Path(ExternalReportFolder, et + '*')))]
+    if not ExternalReport:
+        print("No external on " + et)
+        continue
+
+    try:
+        file = pd.read_excel(str(fname))
+        sg_res = clean(str(fname), file, et)
+        print(str(fname) + " process done!")
+    except Exception as e:
+        errorList.append([str(fname), e])
+        print(str(fname) + " process failed!")
+        continue
+
+    k, sg_res = addKey(sg_res)
+    ext_res = concatExternal(ExternalReport, k)
+    if ext_res is None:
+        print("No external on " + et)
+        continue
+
+    mergeNoutput(sg_res, ext_res, et)
+
+
+# In[ ]:
+
+
+fname = Path (target, "Archive", str('Single shortage ' + lookupSGdateList[-4] + '.xlsx'))
+ExternalReport = [f for f in glob.glob(str(Path(ExternalReportFolder, dateRange[-4] + '*')))]
+
+ExternalReport
 
 
 # In[ ]:
