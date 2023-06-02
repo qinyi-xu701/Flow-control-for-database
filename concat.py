@@ -27,6 +27,16 @@ shortage_folder = os.path.join(targetFolder ,"shortage_today")
 PNbasedDetail_folder = os.path.join(targetFolder ,"PNbasedDetail_today")
 
 
+# ### Amend data
+
+# In[ ]:
+
+
+FD_amend_folder = os.path.join(targetFolder, "FD_today", 'amend')
+shortage_amend_folder = os.path.join(targetFolder ,"shortage_today",'amend')
+PNbasedDetail_amend_folder = os.path.join(targetFolder ,"PNbasedDetail_today",'amend')
+
+
 # ### Function Merge and Sort
 
 # In[ ]:
@@ -36,7 +46,7 @@ def merge(path: str) -> pd.DataFrame:
     # concat
     temp_file_list = []
     for f in glob.glob(path):
-        # print(f)
+        print(f)
         temp_file = pd.read_excel(f)
         temp_file_list.append(temp_file)
     All = pd.concat(temp_file_list)
@@ -65,9 +75,11 @@ def maxLen(df_all: pd.DataFrame, sort_index: list) -> pd.DataFrame:
         max_files.append(max.head(1))
     df_max_to_add = pd.concat(max_files).drop_duplicates()
 
+    df_max_to_add.index.values.sort()
+
     # drop the max len row
     for i, ele in enumerate(df_max_to_add.index.values):
-        df_all = df_all.drop([df_all.index[ele]])
+        df_all = df_all.drop([df_all.index[ele - i]])
 
     # concat and put on the top
     output = pd.concat([df_max_to_add, df_all]).reset_index( drop = True )
@@ -92,19 +104,55 @@ def maxLen(df_all: pd.DataFrame, sort_index: list) -> pd.DataFrame:
 
 
 FD = merge(str(os.path.join(FD_folder,"*.xlsx")))
-FD_output = maxLen(FD, ['FV','Platform'])
-
+try:
+    FD_output = maxLen(FD, ['FV','Platform'])
+except ValueError:
+    FD_output = FD.copy()
+FD_output.drop_duplicates(subset=['ReportDate', 'ODM','Item','Commodity','FV','HP_PN','FDdate','FDQty'], inplace=True)
 
 shortage = merge(str(os.path.join(shortage_folder,"*.xlsx")))
 try:
     shortage['HP_PN'] = shortage['HP_PN'].apply(lambda x: x[:128] if len(x) > 128 else x)
 except:    
     pass
-Shortage_output = maxLen(shortage, ['FV','Platform'])
+
+try:
+    Shortage_output = maxLen(shortage, ['FV','Platform'])
+except ValueError:
+    Shortage_output = shortage.copy()
+except Exception as e:
+    print(e)
+Shortage_output.drop_duplicates(subset=['ReportDate', 'ODM','Item','Commodity','FV'], inplace=True)
 
 
 PN = merge(str(os.path.join(PNbasedDetail_folder,"*.xlsx")))
-PNbasedDetail_output = maxLen(PN, ['GPS Remark','ODM use column1','ODM use column2','ODM use column3','ODM use column4','ODM use column5'])
+try:
+    PNbasedDetail_output = maxLen(PN, ['GPS Remark','ODM use column1','ODM use column2','ODM use column3','ODM use column4','ODM use column5'])
+except ValueError:
+    PNbasedDetail_output = PN.copy()
+# PNbasedDetail_output = PN.copy()
+PNbasedDetail_output.drop_duplicates(subset=['ReportDate', 'ODM','Item','Commodity','HP PN'], inplace=True)
+
+
+# ### Generate amend --> FD, shortage, PNDetail table
+
+# In[ ]:
+
+
+# FD_amend = merge(str(os.path.join(FD_amend_folder,"*.xlsx")))
+# FD_amend_output = maxLen(FD, ['FV','Platform'])
+
+
+# shortage_amend = merge(str(os.path.join(shortage_amend_folder,"*.xlsx")))
+# try:
+#     shortage_amend['HP_PN'] = shortage_amend['HP_PN'].apply(lambda x: x[:128] if len(x) > 128 else x)
+# except:    
+#     pass
+# Shortage_amend_output = maxLen(shortage_amend, ['FV','Platform'])
+
+
+# PN_amend = merge(str(os.path.join(PNbasedDetail_amend_folder,"*.xlsx")))
+# PNbasedDetail_amend_output = maxLen(PN_amend, ['GPS Remark','ODM use column1','ODM use column2','ODM use column3','ODM use column4','ODM use column5'])
 
 
 # ### Output concated FD, Shortage, and PNbasedDetail files
@@ -118,6 +166,16 @@ Shortage_output.to_excel(os.path.join(home, 'Desktop', 'Shortage_all.xlsx'), ind
 PNbasedDetail_output.to_excel(os.path.join(home, 'Desktop', 'PNbasedDetail_all.xlsx'), index=False)
 
 
+# ### Output concated amend FD, shortage, PNDetail
+
+# In[ ]:
+
+
+# FD_amend_output.to_excel(os.path.join(home, 'Desktop', 'FD_amend_all.xlsx'), index=False)
+# Shortage_amend_output.to_excel(os.path.join(home, 'Desktop', 'Shortage_amend_all.xlsx'), index=False)
+# PNbasedDetail_amend_output.to_excel(os.path.join(home, 'Desktop', 'PNbasedDetail_amend_all.xlsx'), index=False)
+
+
 # ### Move file to archive
 
 # In[ ]:
@@ -127,17 +185,41 @@ FD_folder = os.path.join(targetFolder, "FD_today")
 FD_archive_folder = os.path.join(targetFolder, 'FD_Archive_After_1025')
 
 for f in os.listdir(FD_folder):
-    shutil.move(os.path.join(FD_folder, f), os.path.join(FD_archive_folder, f))
+    if f.endswith('.xlsx'):
+        shutil.move(os.path.join(FD_folder, f), os.path.join(FD_archive_folder, f))
+    else:
+        pass
     
 shortage_folder = os.path.join(targetFolder ,"shortage_today")
 shortage_archive_folder = os.path.join(targetFolder ,"Shortage_Archive_After_1025")
 
 for f in os.listdir(shortage_folder):
-    shutil.move(os.path.join(shortage_folder, f), os.path.join(shortage_archive_folder, f))
+    if f.endswith('.xlsx'):
+        shutil.move(os.path.join(shortage_folder, f), os.path.join(shortage_archive_folder, f))
+    else:
+        pass
 
 PNbasedDetail_folder = os.path.join(targetFolder ,"PNbasedDetail_today")
 PNbasedDetail_archive_folder = os.path.join(targetFolder ,"PNbasedDetail_Archive_After_1025")
 
 for f in os.listdir(PNbasedDetail_folder):
-    shutil.move(os.path.join(PNbasedDetail_folder, f), os.path.join(PNbasedDetail_archive_folder, f))
+    if f.endswith('.xlsx'):
+        shutil.move(os.path.join(PNbasedDetail_folder, f), os.path.join(PNbasedDetail_archive_folder, f))
+    else:
+        pass
+
+
+# ### move amend data to archive folder
+
+# In[ ]:
+
+
+for f in os.listdir(FD_amend_folder):
+    shutil.move(os.path.join(FD_amend_folder, f), os.path.join(FD_archive_folder, f))
+
+for f in os.listdir(shortage_amend_folder):
+    shutil.move(os.path.join(shortage_amend_folder, f), os.path.join(shortage_archive_folder, f))
+
+for f in os.listdir(PNbasedDetail_amend_folder):
+    shutil.move(os.path.join(PNbasedDetail_amend_folder, f), os.path.join(PNbasedDetail_archive_folder, f))
 
