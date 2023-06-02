@@ -29,11 +29,15 @@ today = today.strftime("%Y%m%d")
 
 ODMdict = {
     'FWH' : 'WHFXN',
+    'FXN' : 'WHFXN',
+    'Foxconn WH' : 'WHFXN',
     'Compal' : 'KSCEI',
     'CEI' : 'KSCEI',
     'Wistron' : 'CQWIS',
     'wistron' : 'CQWIS',
+    'WCQ': 'CQWIS',
     'Inventec' : 'CQIEC',
+    'Inventec CQ' : 'CQIEC',
     'Quanta' : 'CQQCI',
     'Pegatron' : 'CQPCQ'
 }
@@ -67,15 +71,16 @@ def clean(fname: str, file : pd.DataFrame, externalReportDate : str) -> pd.DataF
 
     #drop useless columns and rows
     file = file.drop(columns = ['Description (Item)', 'Schedule (Comments)', 'Hub inventory', 'Vendor'])
-    file = file[file['Procurement type'] == 'B/S'].reset_index(drop = True)
+    file = file[(file['Procurement type'] == 'B/S') | (file['Procurement type'] == 'Buysell')].reset_index(drop = True)
 
     #adjust qty columns name and units
     qtycol = file.filter(like='Single Shortage QTY (K)').columns.tolist()
     
 
     for i in qtycol:
-        file[i] = file[i].apply(lambda x: x.upper() if type(x) == str else x)
+        file[i] = file[i].apply(lambda x: x.upper().strip() if type(x) == str else x)
         file[i] = file[i].replace("NEW", 0)
+        file[i] = file[i].replace("NEW ADD", 0)
         file[i] = file[i].apply(lambda x: x*1000)
     file = file.rename(columns= {qtycol[0]: 'Single Shortage QTY', qtycol[1]: 'Prev_Single Shortage QTY'})
 
@@ -191,7 +196,8 @@ def concatExternal(extReportPathList: list, KeyList: list) -> pd.DataFrame:
             print(_)
     try:
         externalResultDF = pd.concat(externalResultDFList)
-    except ValueError:
+    except Exception as e:
+        print(e)
         print("No single shortage match!")
         return pd.DataFrame(columns = ['ODM', 'FV/Des', 'HP_PN', 'ETA', 'GPS Remark'])
     print('External process done!')
@@ -206,6 +212,7 @@ def concatExternal(extReportPathList: list, KeyList: list) -> pd.DataFrame:
 
 def mergeNoutput(SGres: pd.DataFrame, extRes: pd.DataFrame, dateStr: str) -> None:
     SGres = SGres.merge(PNFVFile.rename(columns = {'PN': 'HP PN'}), on = 'HP PN', how = 'left')
+    print(SGres[SGres['HP PN'] == 'M83662-N13'])
     SGres = SGres.merge(extRes.rename(columns = {'FV/Des' : 'Descr'}), on = ['ODM', 'Descr'], how = 'left')
     SGres = SGres.drop_duplicates()
     SGres.to_excel(Path(target, 'test','total singal shortage_' + dateStr +'.xls'), index = False, engine = 'xlwt')
@@ -242,7 +249,7 @@ for i, j in zip(dateRange[0], lookupSGdateList[0]):
 
 
 et = today
-# et = '20230306'
+# et = '20230512'
 # sg = '20230209'
 
 fname = [f for f in glob.glob(str(Path(target, 'Single shortage ' + '*')))][-1]
@@ -257,6 +264,7 @@ try:
     print(str(fname) + " process done!")
 except Exception as e:
     errorList.append([str(fname), e])
+    print(e)
     print(str(fname) + " process failed!")
     #exit()
 
@@ -315,7 +323,7 @@ for index, row in sg_res.iterrows():
     cursor.execute(f"INSERT INTO CSI.OPS.GPS_tbl_ops_Single_shortage ( Commodity, [Single Shortage QTY], ODM, Series, [HP PN], [Prev_Single Shortage QTY], \
                     [Procurement type], reportDate, ETA, [GPS Remark], LastSGreportDate)\
                     VALUES('{sg_Commodity}','{sg_Qty}','{sg_ODM}','{sg_series}','{sg_PN_all}', '{sg_pQty}','{sg_pTyoe}','{sg_reportDate}',\
-                           '{sg_ETA}','{sg_gpsRemark}', '{sg_lastSGreportDate}')".replace("'NaT'", "NULL"))
+                           '{sg_ETA}','{sg_gpsRemark}', '{sg_lastSGreportDate}')".replace("'NaT'", "NULL").replace("'nan'", "NULL"))
 
 conn.commit()
 
@@ -329,69 +337,15 @@ conn.close()
 # In[ ]:
 
 
-ExternalReportFolder
 ExternalreportArchiveFolder = os.path.join(home, 'HP Inc','GPSTW SOP - 2021 日新','Project team','External test destination', 'Archive')
 
 for f in os.listdir(ExternalReportFolder):
-    shutil.move(os.path.join(ExternalReportFolder, f), os.path.join(ExternalreportArchiveFolder, f))
+    if f.endswith('.xlsx'):
+        shutil.move(os.path.join(ExternalReportFolder, f), os.path.join(ExternalreportArchiveFolder, f))
 
-
-# In[ ]:
-
-
-stop
-
-
-# In[ ]:
-
-
-for et, sg in zip(dateRange[0], lookupSGdateList[0]):
-    fname = Path (target, "Archive", str('Single shortage ' + sg + '.xlsx'))
-    ExternalReport = [f for f in glob.glob(str(Path(ExternalReportFolder, et + '*')))]
-    if not ExternalReport:
-        print("No external on " + et)
-        continue
-
-    try:
-        file = pd.read_excel(str(fname))
-        sg_res = clean(str(fname), file, et)
-        print(str(fname) + " process done!")
-    except Exception as e:
-        errorList.append([str(fname), e])
-        print(str(fname) + " process failed!")
-        continue
-
-    k, sg_res = addKey(sg_res)
-    ext_res = concatExternal(ExternalReport, k)
-    if ext_res is None:
-        print("No external on " + et)
-        continue
-
-    mergeNoutput(sg_res, ext_res, et)
-
-
-# In[ ]:
-
-
-fname = Path (target, "Archive", str('Single shortage ' + lookupSGdateList[-4] + '.xlsx'))
-ExternalReport = [f for f in glob.glob(str(Path(ExternalReportFolder, dateRange[-4] + '*')))]
-
-ExternalReport
-
-
-# In[ ]:
-
-
-errorList
-
-
-# In[ ]:
-
-
-import psutil
-psutil.cpu_percent()
-psutil.virtual_memory()
-print(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2)
+for f in os.listdir(os.path.join(ExternalReportFolder, 'amend')):
+    if f.endswith('.xlsx'):
+        shutil.move(os.path.join(ExternalReportFolder, 'amend', f), os.path.join(ExternalreportArchiveFolder, 'amend', f))
 
 
 # In[ ]:
