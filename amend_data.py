@@ -133,8 +133,10 @@ for fd in glob.glob(os.path.join(FD_path, '*.xlsx')):
 FD_amend_data_temp = pd.concat(fd_amend_temp, ignore_index=True)
 
 # Max len check
-# FD_amend_data = maxLen(FD_amend_data_temp, ['FV','Platform'])
-FD_amend_data = FD_amend_data_temp.copy()
+try:
+    FD_amend_data = maxLen(FD_amend_data_temp, ['FV','Platform'])
+except:
+    FD_amend_data = FD_amend_data_temp.copy()
 
 for index, row in FD_amend_data.iterrows():
     f_ODM = row['ODM']
@@ -208,8 +210,10 @@ try:
 except:    
     pass
 
-Shortage_amend_data = maxLen(Shortage_amend_data_temp, ['Platform','FV'])
-
+try:
+    Shortage_amend_data = maxLen(Shortage_amend_data_temp, ['Platform','FV'])
+except:
+    Shortage_amend_data = Shortage_amend_data_temp.copy()
 
 for index, row in Shortage_amend_data.iterrows():
     s_ODM = row['ODM']
@@ -287,11 +291,13 @@ for i in ['GPS Remark', 'ODM use column1','ODM use column2','ODM use column3','O
     PNbasedDetail_amend_data_temp[i] = PNbasedDetail_amend_data_temp[i].fillna("")
 
 # Max len check
-# PNbasedDetail_amend_data = maxLen(PNbasedDetail_amend_data_temp, ['GPS Remark','ODM use column1','ODM use column2','ODM use column3','ODM use column4','ODM use column5'])
+try:
+    PNbasedDetail_amend_data = maxLen(PNbasedDetail_amend_data_temp, ['GPS Remark','ODM use column1','ODM use column2','ODM use column3','ODM use column4','ODM use column5'])
+except:
+    PNbasedDetail_amend_data = PNbasedDetail_amend_data_temp.copy()
 
 
-
-for index, row in PNbasedDetail_amend_data_temp.iterrows():
+for index, row in PNbasedDetail_amend_data.iterrows():
     p_ODM = row['ODM']
     p_Item = row['Item']
     p_Commodity = row['Commodity']
