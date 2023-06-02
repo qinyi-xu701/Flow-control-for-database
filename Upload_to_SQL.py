@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[22]:
 
 
 import pyodbc
@@ -15,7 +15,7 @@ import math
 import time
 
 
-# In[2]:
+# In[23]:
 
 
 # home and time
@@ -23,14 +23,14 @@ home = Path.home()
 todaystr = date.today().strftime('%Y-%m-%d')
 
 
-# In[3]:
+# In[24]:
 
 
 conn = pyodbc.connect('Driver={SQL Server Native Client 11.0}; Server=g7w11206g.inc.hpicorp.net; Database=CSI; Trusted_Connection=Yes;')
 cursor = conn.cursor()
 
 
-# In[4]:
+# In[25]:
 
 
 FD_path = Path( home, "desktop" , 'FD_all.xlsx')
@@ -38,7 +38,7 @@ shortage_path = Path( home, "desktop" , 'Shortage_all.xlsx')
 PNbasedDetail_path = Path( home, "desktop" , 'PNbasedDetail_all.xlsx')
 
 
-# In[5]:
+# In[26]:
 
 
 FD = pd.read_excel( FD_path, sheet_name='Sheet1' )
@@ -46,7 +46,7 @@ shortage = pd.read_excel( shortage_path, sheet_name='Sheet1' )
 PNbasedDetail = pd.read_excel( PNbasedDetail_path, sheet_name='Sheet1' )
 
 
-# In[6]:
+# In[27]:
 
 
 for index, row in FD.iterrows():
@@ -69,7 +69,7 @@ for index, row in FD.iterrows():
 conn.commit()
 
 
-# In[7]:
+# In[28]:
 
 
 for index, row in shortage.iterrows():
@@ -95,14 +95,14 @@ for index, row in shortage.iterrows():
 conn.commit()
 
 
-# In[8]:
+# In[29]:
 
 
 for i in ['GPS Remark', 'ODM use column1','ODM use column2','ODM use column3','ODM use column4','ODM use column5']:
     PNbasedDetail[i] = PNbasedDetail[i].fillna("")
 
 
-# In[9]:
+# In[30]:
 
 
 for index, row in PNbasedDetail.iterrows():
