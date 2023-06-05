@@ -134,27 +134,6 @@ except ValueError:
 PNbasedDetail_output.drop_duplicates(subset=['ReportDate', 'ODM','Item','Commodity','HP PN'], inplace=True)
 
 
-# ### Generate amend --> FD, shortage, PNDetail table
-
-# In[ ]:
-
-
-# FD_amend = merge(str(os.path.join(FD_amend_folder,"*.xlsx")))
-# FD_amend_output = maxLen(FD, ['FV','Platform'])
-
-
-# shortage_amend = merge(str(os.path.join(shortage_amend_folder,"*.xlsx")))
-# try:
-#     shortage_amend['HP_PN'] = shortage_amend['HP_PN'].apply(lambda x: x[:128] if len(x) > 128 else x)
-# except:    
-#     pass
-# Shortage_amend_output = maxLen(shortage_amend, ['FV','Platform'])
-
-
-# PN_amend = merge(str(os.path.join(PNbasedDetail_amend_folder,"*.xlsx")))
-# PNbasedDetail_amend_output = maxLen(PN_amend, ['GPS Remark','ODM use column1','ODM use column2','ODM use column3','ODM use column4','ODM use column5'])
-
-
 # ### Output concated FD, Shortage, and PNbasedDetail files
 
 # In[ ]:
@@ -164,16 +143,6 @@ PNbasedDetail_output.drop_duplicates(subset=['ReportDate', 'ODM','Item','Commodi
 FD_output.to_excel(os.path.join(home, 'Desktop', 'FD_all.xlsx'), index=False)
 Shortage_output.to_excel(os.path.join(home, 'Desktop', 'Shortage_all.xlsx'), index=False)
 PNbasedDetail_output.to_excel(os.path.join(home, 'Desktop', 'PNbasedDetail_all.xlsx'), index=False)
-
-
-# ### Output concated amend FD, shortage, PNDetail
-
-# In[ ]:
-
-
-# FD_amend_output.to_excel(os.path.join(home, 'Desktop', 'FD_amend_all.xlsx'), index=False)
-# Shortage_amend_output.to_excel(os.path.join(home, 'Desktop', 'Shortage_amend_all.xlsx'), index=False)
-# PNbasedDetail_amend_output.to_excel(os.path.join(home, 'Desktop', 'PNbasedDetail_amend_all.xlsx'), index=False)
 
 
 # ### Move file to archive
@@ -207,19 +176,4 @@ for f in os.listdir(PNbasedDetail_folder):
         shutil.move(os.path.join(PNbasedDetail_folder, f), os.path.join(PNbasedDetail_archive_folder, f))
     else:
         pass
-
-
-# ### move amend data to archive folder
-
-# In[ ]:
-
-
-for f in os.listdir(FD_amend_folder):
-    shutil.move(os.path.join(FD_amend_folder, f), os.path.join(FD_archive_folder, f))
-
-for f in os.listdir(shortage_amend_folder):
-    shutil.move(os.path.join(shortage_amend_folder, f), os.path.join(shortage_archive_folder, f))
-
-for f in os.listdir(PNbasedDetail_amend_folder):
-    shutil.move(os.path.join(PNbasedDetail_amend_folder, f), os.path.join(PNbasedDetail_archive_folder, f))
 
