@@ -4,6 +4,7 @@ import shutil
 home = os.path.expanduser("~")
 targetFolder = os.path.join(home, 'HP Inc','GPSTW SOP - 2021 日新','Project team','Upload folder ( for buyer update )')
 datelist = [str(i + 20230331) for i in range(31)]
+datelist = [str(20230628)]
 # date = '20230510'
 
 def move(targetFolder, date):
