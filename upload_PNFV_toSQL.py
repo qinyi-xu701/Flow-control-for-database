@@ -4,20 +4,19 @@
 # In[ ]:
 
 
-import pyodbc
-import pandas as pd
-from pathlib import Path
-import glob
 import datetime
-import re
-import os
-import numpy as np
-from pandas.api.types import is_string_dtype
-from pandas.api.types import is_numeric_dtype
-from datetime import date
+import glob
 import math
+import os
+import re
 import time
+from datetime import date
+from pathlib import Path
 
+import numpy as np
+import pandas as pd
+import pyodbc
+from pandas.api.types import is_numeric_dtype, is_string_dtype
 
 # In[ ]:
 
@@ -25,20 +24,14 @@ import time
 # home and time
 home = Path.home()
 todaystr = date.today().strftime('%Y-%m-%d')
-PNFV_alternative = pd.read_excel(Path(home, 'HP Inc','GPSTW SOP - 2021 日新','Project team','PNFV', 'alternative.xlsx'))
-PNFV = pd.read_excel(Path(home, 'HP Inc','GPSTW SOP - 2021 日新','PN FV description mapping table_ALL.xlsx'))
+PNFV_alternative = pd.read_excel(Path(home, 'HP Inc', 'GPS TW Innovation - Documents', 'GPS', 'PNFV', 'alternative.xlsx'))
+PNFV = pd.read_excel(Path(home, 'HP Inc', 'GPS TW Innovation - Documents', 'Users', 'GPS', 'PN FV description mapping table_ALL.xlsx'))
 
 
 # In[ ]:
 
 
 PNFV = pd.merge(PNFV, PNFV_alternative, on = 'Descr', how = 'left')
-
-
-# In[ ]:
-
-
-PNFV
 
 
 # In[ ]:
@@ -79,6 +72,3 @@ for index, row in PNFV.iterrows():
 conn.commit()
 conn.close()
 print("%s seconds ---" % (time.time() - start_time))
-
-
-# 
