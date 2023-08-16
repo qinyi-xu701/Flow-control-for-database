@@ -21,6 +21,8 @@ today = date.today().strftime("%Y%m%d")
 outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
 # folder = Path(home, 'HP Inc', 'GPSTW SOP - 2021 日新')
 folder = Path(home, 'HP Inc','GPS TW Innovation - Documents','Users','GPS','Shortage management related (Ri Xin)')
+filepath = 'C:\\Users\\chengspe\\HP Inc\\GPS TW Innovation - 文件\\Users\\GPS\\Shortage management related (Ri Xin)\\PN FV description mapping table_ALL.xlsx'
+
 emailReceiverFolder = Path(home,'HP Inc', 'GPSTW SOP - 2021 日新', 'Project team')
 
 
@@ -71,9 +73,9 @@ mail.HTMLBody = '<h3>This is HTML Body</h3>'
 mail.Body = "Hi receiver, \n\nPlease find latest PN FV description mapping table attached. Thanks." + signature
 #將剛才最後兩封信做為附件
 #mail.Attachments.Add(r'C:\Users\lulo\HP Inc\GPSTW SOP - 2021 日新\PN FV description mapping table_ALL.xlsx')
-print(Path(home, folder, 'PN FV description mapping table_ALL.xlsx'))
+# print(Path(home, folder, 'PN FV description mapping table_ALL.xlsx'))
 
-mail.Attachments.Add(str(Path(folder, 'PN FV description mapping table_ALL.xlsx')))
+mail.Attachments.Add(str(filepath))
 time.sleep(15)
 #寄信
 mail.Send()
