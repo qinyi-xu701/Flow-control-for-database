@@ -15,8 +15,8 @@ today = date.today().strftime("%Y%m%d")
 outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
 # folder = Path(home, 'HP Inc', 'GPSTW SOP - 2021 日新')
 
-folder = Path(home, 'HP Inc', 'GPS TW Innovation - 文件','Users','GPS','Shortage management related (Ri Xin)')
-emailReceiver_path = Path(home, 'HP Inc', 'GPS TW Innovation - 文件', 'Project team', 'receiver.xlsx')
+folder = Path(home, 'HP Inc', 'GPS TW Innovation - Documents','Users','BSP','Shortage management related (Ri Xin)')
+emailReceiver_path = Path(home, 'HP Inc', 'GPS TW Innovation - Documents', 'Project team', 'receiver.xlsx')
 emailReceiver = pd.ExcelFile(emailReceiver_path)
 
 # %%
